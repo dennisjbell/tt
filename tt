@@ -331,24 +331,38 @@ sub print_lines
 	print "\n" if @$lines;
 }
 
-sub print_totals
-{
+sub print_totals {
 	my ($total, $rates) = @_;
 
-	printf "     Project    Time    Hours |    \$\$\$.\$\$\n";
-	printf "-------------------------------------------\n";
-	my $sum = 0;
-	my $tbil = 0;
+	printf "     Project    Time    Hours |    \$\$\$.\$\$ CUR\n";
+	printf "-----------------------------------------------\n";
+	my %time_c = ();
+	my %wage_c = ();
 	for my $k (keys %$total) {
 		my $n = $total->{$k};
 		my $h = $n/60.0;
-		my $bill = $rates->{$k} ? sprintf("%9.2lf", $h*$rates->{$k}) : '      -  ';
-		printf "%12s  %6i  %6.1fh | %s u\n", $k, $n, $h, $bill;
-		$sum  += $n;
-		$tbil += $h*$rates->{$k} if $rates->{$k};
+		my $wage = '      -  ';
+		if ($rates->{$k}) {
+			my ($r,$c) = $rates->{$k} =~ m/^\s*(\d+(?:\.\d+)?)(?:\s+(\w+))/;
+			$c ||= 'USD';
+			$wage = sprintf("%9.2lf", $h*$r);
+			$wage_c{$c} = ($wage_c{$c} || 0) + $h*$r;
+			$time_c{$c} += $n;
+			$wage .= " $c";
+		} else {
+			$time_c{''} += $n;
+		}
+		printf "%12s  %6i  %6.1fh | %s \n", $k, $n, $h, $wage;
 	}
-	printf "-------------------------------------------\n";
-	printf "       TOTAL  %6i  %6.1fh | %9.2lf\n", $sum, $sum/60.0, $tbil;
+	printf "-------TOTALS----------------------------------\n";
+	for (keys %time_c) {
+		printf "              %6i  %6.1fh |",  $time_c{$_}, $time_c{$_}/60.0,;
+		if (defined $wage_c{$_}) {
+			printf " %9.2lf %s\n", $wage_c{$_}, $_;
+		} else {
+			printf "       -\n";
+		}
+	}
 }
 
 *debug = $opt{debug} ? \&debug1 : \&debug0;

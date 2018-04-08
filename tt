@@ -81,25 +81,6 @@ sub next_date
 	mkdate(skip_dst($ts+86400));
 }
 
-sub match_date_range
-{
-	my ($from, $to) = @_;
-	return "^(".join("|", @{expand_date_range($from, $to)}).")";
-}
-
-sub expand_date_range
-{
-	my ($date, $end) = @_;
-	my @dates = ();
-
-	while ($date ne $end) {
-		push @dates, $date;
-		$date = next_date($date);
-	}
-	push @dates, $end;
-	return \@dates;
-}
-
 sub month_range
 {
 	my (undef, undef, undef, $d, $m, $y) = localtime(str2time($_[0]));
@@ -131,6 +112,7 @@ sub parse_date_range
 	return unless $from;
 
 	return ($from, $from) unless $to;
+	return ($from, mkdate(time)) if $to eq 'now';
 
 	my $end = parse_date($to);
 	return ($from, $end) if $end;
@@ -200,6 +182,9 @@ sub parse_date
 		return mkdate($3,$MONTHS{$1},$2);
 	}
 
+	debug("parse_date: got called with '$str'; have no response");
+	return ();
+
 	# FIXME: handle relative date of "last <dayname>"
 }
 
@@ -214,15 +199,19 @@ sub track
 
 sub extract
 {
-	my $regex = qr/$_[0]/;
+	my ($from,$to) = @_;
+	$to ||= "9999-99-99";
+	$from ||= "0000-00-00";
 	my $res = {};
 
 	open TT, "<", $TT_FILE or die "$TT_FILE: $!\n";
 	while (<TT>) {
-		next unless $_ =~ $regex;
+		next unless /^(\d{4}-\d{2}-\d{2}) /;
+		my $d = $1;
+		next if $d lt $from or $d gt $to;
 		chomp;
 		# Key by first subgroup match
-		push @{$res->{$1}}, $_;
+		push @{$res->{$d}}, $_;
 	}
 
 	return $res;
@@ -284,10 +273,11 @@ Advanced Usage:
       Report tracked time in a date range or named
       reporting period.
 
-      Periods:   day, week, month, mtd, year, ytd
+      Periods:   day, week, month, mtd, year, ytd, all
       Arbitrary: YYYY-MM-DD:YYYY-MM-DD
                  YYYY-MM-DD:+N
                  YYYY-MM-DD:DD
+                 YYYY-MM-DD:now
 
   --full, -f
       Show details in --summary.  Ignored otherwise.
@@ -453,7 +443,10 @@ if ($opt{summary}) {
 		my $start_day = $CFG->{weekstart} || 'Sun';
 		my $prev = prev_weekday($opt{date}, day($start_day))
 			or die "Cannot determine ".day(day($start_day),'name')." before $opt{date}\n";
-		($from, $to) = parse_date_range("$prev:+6");
+		($from, $to) = parse_date_range("$prev:now");
+
+	} elsif ($period eq 'all' or $period eq 'a') {
+		$from = $to = "";
 
 	} else {
 		($from, $to) = parse_date_range($period);
@@ -467,12 +460,12 @@ if ($opt{summary}) {
 
 	print "Time Tracking Report\n";
 	if ($from eq $to) {
-		print "  for $from\n\n";
+		printf "  for %s\n\n", $from || "all entries";
 	} else {
 		print "  $from - $to\n\n";
 	}
-	my $dates = expand_date_range($from, $to);
-	my $log = extract(match_date_range($from, $to));
+	my $log = extract($from, $to);
+	my $dates = [sort keys %$log];
 
 	my $grand_total = {};
 	for my $date (@$dates) {

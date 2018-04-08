@@ -384,18 +384,16 @@ if ($opt{help}) {
 
 debug("tt v$VERSION starting up");
 
+#-- Parse Config -----------------------------------------------------------{{{
 my $CFG = undef;
-if ($opt{config}) {
-	eval {
-		$CFG = LoadFile($opt{config})
-	} or do {
-		die "Failed to load config '$opt{config}': $@\n";
+my ($cfg_filename) = (grep {$_ and -f $_} ($opt{config}, "$ENV{HOME}/.ttrc", "/etc/tt.conf"));
+if ($cfg_filename) {
+	eval { $CFG = LoadFile($cfg_filename);} or do {
+		die "Failed to load config 'cfg_filename': $@\n";
 	};
 }
-eval { $CFG = LoadFile("$ENV{HOME}/.ttrc"); } unless $CFG;
-eval { $CFG = LoadFile("/etc/tt.conf"); } unless $CFG;
 $CFG = {} unless $CFG;
-debug("CFG:", Dumper($CFG));
+debug("CFG: (from '$cfg_filename')", Dumper($CFG));
 
 $TT_FILE = $opt{ttfile} || $CFG->{ttfile} || "~/.timetrack";
 $TT_FILE =~ s/^~\//$ENV{HOME}\//;

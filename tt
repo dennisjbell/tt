@@ -420,7 +420,7 @@ if (exists $opt{date}) {
 	$opt{date} = mkdate(time);
 }
 
-if ($opt{summary}) {
+if (@ARGV == 0 or $opt{summary}) {
 	my ($from, $to); # Date range of summary
 
 	# Process named summation periods
@@ -482,23 +482,13 @@ if ($opt{summary}) {
 		print_lines($log->{$date}) if $opt{full};
 	}
 	print_totals($grand_total, $CFG->{rates});
-	exit 0;
-}
-
-debug("\@argv == ".@ARGV);
-debug(map { "argv[]: $_" } @ARGV);
-
-if (@ARGV == 0) {
-	my $lines = extract("^($opt{date})\\s");
-	print_lines($lines->{$opt{date}}) if !$opt{summary} || $opt{full};
-	print_totals(sum_totals($lines->{$opt{date}}), $CFG->{rates});
-	print "\n";
 
 	my $since = time_stat;
 	defined($since) and print rjust(" updated $since min. ago ---\n", 30, '-');
+
 	exit 0;
 
-} elsif (@ARGV >= 3) {
+if (@ARGV >= 3) {
 	my ($project, $time_s, @rest) = @ARGV;
 	my $comment = join(" ", @rest);
 
@@ -514,6 +504,9 @@ if (@ARGV == 0) {
 
 	track($opt{date}, $project, $time, $comment);
 	exit 0;
+
+debug("\@argv == ".@ARGV);
+debug(map { "argv[]: $_" } @ARGV);
 
 } else {
 	usage(1);

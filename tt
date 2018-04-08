@@ -17,6 +17,9 @@ use Date::Parse qw(str2time);
 use YAML qw(LoadFile);
 use Data::Dumper; sub dumpit { print Dumper(\@_); }
 
+use Getopt::Long;
+Getopt::Long::Configure("bundling");
+
 our $VERSION = "1.0";
 our $TT_FILE;
 
@@ -230,11 +233,6 @@ sub sum_totals
 	return $total;
 }
 
-#########################################################
-
-use Getopt::Long;
-Getopt::Long::Configure("bundling");
-
 sub debug1
 {
 	map { print STDERR "DEBUG> $_\n" } @_;
@@ -257,7 +255,7 @@ tt - dead-simple time tracking
 Copyright © 2017 James Hunt
 
 Basic Usage:
-  tt [PROJECT] [MINUTES] [COMMENT]
+  tt [PROJECT] [MINUTES|'s'] [COMMENT]
   tt -x
   tt -s week
   tt -sf mtd
@@ -285,7 +283,7 @@ Advanced Usage:
   --date, -d YYYY-MM-DD
       Use specified date as reference point.
 
-  --kill, -x
+  --kill, --reset, -x
       Reset the counter on `tt project s ...`
 
   --prompt
@@ -305,20 +303,6 @@ Advanced Usage:
 
 EOF
 }
-
-my %opt = ();
-GetOptions(\%opt,
-	'help|h',
-	'debug|v',     # undocumented
-	'summary|s',
-	'full|f',
-	'date|d=s',
-	'edit|e',
-	'kill|x',
-	'prompt',
-	'config|C=s',
-	'ttfile|T=s',
-) or usage(1);
 
 sub print_lines
 {
@@ -364,7 +348,34 @@ sub print_totals {
 	}
 }
 
+### MAIN ######################################################################
+
+# -- Parse and Validate Options --------------------------------------------{{{
+my %opt = ();
+GetOptions(\%opt,
+	'help|h',
+	'debug|v',     # undocumented
+	'summary|s',
+	'projects|p',
+	'full|f',
+	'date|d=s',
+	'edit|e',
+	'kill|reset|x',
+	'prompt',
+	'config|C=s',
+	'ttfile|T=s',
+) or usage(1);
+
 *debug = $opt{debug} ? \&debug1 : \&debug0;
+
+if (exists $opt{date}) {
+	my $date = parse_date($opt{date});
+	$date or die "$opt{date}: not a valid date spec.\n";
+	$opt{date} = $date;
+} else {
+	$opt{date} = mkdate(time);
+}
+# }}}
 
 if ($opt{help}) {
 	help;
@@ -410,15 +421,6 @@ if ($opt{kill}) {
 	exit 0;
 }
 
-# Set the reference point date
-#
-if (exists $opt{date}) {
-	my $date = parse_date($opt{date});
-	$date or die "$opt{date}: not a valid date spec.\n";
-	$opt{date} = $date;
-} else {
-	$opt{date} = mkdate(time);
-}
 
 if (@ARGV == 0 or $opt{summary}) {
 	my ($from, $to); # Date range of summary

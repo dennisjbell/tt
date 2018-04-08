@@ -415,7 +415,17 @@ if ($opt{kill}) {
 			"Cowardly giving up.\n"
 		if @ARGV > 0;
 
-	utime(undef, undef, $TT_FILE);
+	if ($TT_FILE =~ /dropbox/i) {
+		# Dropbox does not sync timestamp changes
+		my $minutes = time_stat || 0;
+		exit 0 unless $minutes;
+		my $now = strftime "%F %T UTC", gmtime $^T;
+		open my $fh, ">>", $TT_FILE or die "$TT_FILE: $!\n";
+		printf $fh "# Reset on %s: abandoning %d minutes\n", $now, $minutes;
+		close $fh;
+	} else {
+		utime(undef, undef, $TT_FILE);
+	}
 	exit 0;
 }
 

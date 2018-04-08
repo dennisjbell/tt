@@ -387,7 +387,8 @@ eval { $CFG = LoadFile("/etc/tt.conf"); } unless $CFG;
 $CFG = {} unless $CFG;
 debug("CFG:", Dumper($CFG));
 
-$TT_FILE = $opt{ttfile} || $CFG->{ttfile} || "$ENV{HOME}/.timetrack";
+$TT_FILE = $opt{ttfile} || $CFG->{ttfile} || "~/.timetrack";
+$TT_FILE =~ s/^~\//$ENV{HOME}\//;
 
 if ($opt{prompt}) {
 	my $since;

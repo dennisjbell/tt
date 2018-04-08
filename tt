@@ -337,9 +337,12 @@ sub print_totals {
 		}
 		printf "%12s  %6i  %6.1fh | %s \n", $k, $n, $h, $wage;
 	}
-	printf "-------TOTALS----------------------------------\n";
+	printf "-----------------------------------------------\n";
+	my $time_t = 0;
+	my $label = "TOTALS";
 	for (keys %time_c) {
-		printf "              %6i  %6.1fh |",  $time_c{$_}, $time_c{$_}/60.0,;
+		printf "     %s   %6i  %6.1fh |",  $label, $time_c{$_}, $time_c{$_}/60.0,;
+		$label = "      ";
 		if (defined $wage_c{$_}) {
 			printf " %9.2lf %s\n", $wage_c{$_}, $_;
 		} else {

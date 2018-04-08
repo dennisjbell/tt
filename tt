@@ -22,9 +22,10 @@ Getopt::Long::Configure("bundling");
 
 our $VERSION = "1.0";
 our $TT_FILE;
+our @DAYNAMES = qw/Sunday Monday Tuesday Wednesday Thursday Friday Saturday/;
 
-my @DAYNAMES = qw/Sunday Monday Tuesday Wednesday Thursday Friday Saturday/;
-sub day {
+sub day # {{{
+{
 	my $value = shift;
 	my $want = shift || "id";
 	if (grep {$_ eq $want} (qw/id valid/)) {
@@ -36,16 +37,16 @@ sub day {
 	} else {
 		die "Invalid call to day('$value','$want')\n";
 	}
-}
-	
-sub rjust
+} # }}}
+
+sub rjust # {{{
 {
 	my ($s, $n, $fill) = @_;
 	$fill = $fill || ' ';
 	return ($fill x ($n - length $s)) . $s;
-}
+} # }}}
 
-sub mkdate
+sub mkdate #{{{
 {
 	my ($y,$m,$d) = @_;
 	if ($y && $m && $d) {
@@ -55,9 +56,9 @@ sub mkdate
 		return strftime("%Y-%m-%d", localtime($y));
 	}
 	undef;
-}
+} # }}}
 
-sub prev_weekday
+sub prev_weekday #{{{
 {
 	my ($date, $target) = @_;
 
@@ -71,20 +72,20 @@ sub prev_weekday
 	$offset -= 7 if $offset > 0;
 
 	return mkdate($date + (86400*$offset));
-}
+} # }}}
 
-sub skip_dst
+sub skip_dst #{{{
 {
 	$_[0]+43200;
-}
+} # }}}
 
-sub next_date
+sub next_date #{{{
 {
 	return undef unless my $ts = str2time(shift);
 	mkdate(skip_dst($ts+86400));
-}
+} # }}}
 
-sub month_range
+sub month_range #{{{
 {
 	my (undef, undef, undef, $d, $m, $y) = localtime(str2time($_[0]));
 	$y += 1900; $m += 1;
@@ -92,23 +93,23 @@ sub month_range
 	if ($m == 12) { $y++; $m = 1; }
 	else {                $m++;   }
 	return $from, mkdate(str2time("$y/$m/01") - 86400);
-}
+} # }}}
 
-sub year_range
+sub year_range #{{{
 {
 	my (undef, undef, undef, undef, undef, $y) = localtime(str2time($_[0]));
 	return mkdate($y+1900, 1, 1),
 	       mkdate($y+1900, 12, 31);
-}
+} # }}}
 
-sub ytd_range
+sub ytd_range #{{{
 {
 	my (undef, undef, undef, undef, undef, $y, undef, $yday) = localtime(str2time($_[0]));
 	$y += 1900;
 	return parse_date_range("$y-01-01:+$yday");
-}
+} # }}}
 
-sub parse_date_range
+sub parse_date_range #{{{
 {
 	my ($from, $to) = split(/:/, shift);
 	$from = parse_date($from);
@@ -130,15 +131,15 @@ sub parse_date_range
 		$end = mkdate(skip_dst($ts+($to*86400)));
 		return ($to > 0 ? ($from, $end) : ($end, $from));
 	}
-}
+} # }}}
 
-sub time_stat
+sub time_stat #{{{
 {
 	my @st = stat $TT_FILE or return undef;
 	return int((time - $st[9]) / 60 + 0.5);
-}
+} # }}}
 
-sub parse_time
+sub parse_time #{{{
 {
 	my $str = shift;
 	return 0 unless $str;
@@ -157,9 +158,9 @@ sub parse_time
 	}
 
 	undef;
-}
+} # }}}
 
-sub parse_date
+sub parse_date #{{{
 {
 	my $str = shift;
 	if ($str =~ m/^(\d+)([dw])$/) {
@@ -189,18 +190,18 @@ sub parse_date
 	return ();
 
 	# FIXME: handle relative date of "last <dayname>"
-}
+} # }}}
 
-sub track
+sub track #{{{
 {
 	my ($date, $project, $time, $comment) = @_;
 	$comment =~ s/\n/.  /;
 	open my $fh, ">>", $TT_FILE or die "$TT_FILE: $!\n";
 	printf $fh "%s  %12s  %3i  %s\n", $date, $project, $time, $comment;
 	close $fh;
-}
+} # }}}
 
-sub extract
+sub extract #{{{
 {
 	my ($from,$to) = @_;
 	$to ||= "9999-99-99";
@@ -218,9 +219,9 @@ sub extract
 	}
 
 	return $res;
-}
+} # }}}
 
-sub sum_totals
+sub sum_totals #{{{
 {
 	my ($lines) = @_;
 	my $total = {};
@@ -231,24 +232,26 @@ sub sum_totals
 		$total->{$1} += $2;
 	}
 	return $total;
-}
+} # }}}
 
-sub debug1
+sub debug1 #{{{
 {
 	map { print STDERR "DEBUG> $_\n" } @_;
-}
-sub debug0 { }
+} # }}}
 
-sub usage
+sub debug0 # {{{
+{ } #}}}
+
+sub usage #{{{
 {
 	(my $bin = $0) =~ s|.*/||;
 	print "USAGE: $bin T 99 summary of what you did\n",
 	      "       $bin [OPTIONS]\n",
 	      "$bin -h for help\n";
 	exit shift;
-}
+} # }}}
 
-sub help
+sub help #{{{
 {
 	print <<EOF;
 tt - dead-simple time tracking
@@ -302,9 +305,9 @@ Advanced Usage:
       Defaults to ~/.timetrack
 
 EOF
-}
+} # }}}
 
-sub print_lines
+sub print_lines #{{{
 {
 	my $lines = shift;
 	for (@$lines) {
@@ -312,9 +315,10 @@ sub print_lines
 		printf "%s  %12s  %3i  %s\n", $date, $project, $time, join(' ', @rest);
 	}
 	print "\n" if @$lines;
-}
+} # }}}
 
-sub print_totals {
+sub print_totals # {{{
+{
 	my ($total, $rates) = @_;
 
 	printf "     Project    Time    Hours |    \$\$\$.\$\$ CUR\n";
@@ -349,7 +353,7 @@ sub print_totals {
 			printf "       -\n";
 		}
 	}
-}
+} # }}}
 
 ### MAIN ######################################################################
 
@@ -378,14 +382,11 @@ if (exists $opt{date}) {
 } else {
 	$opt{date} = mkdate(time);
 }
-# }}}
 
-if ($opt{help}) {
-	help;
-	exit 0;
-}
-
+exit help if ($opt{help});
+exec '/bin/sh -c "$EDITOR '.$TT_FILE.'"'if $opt{edit};
 debug("tt v$VERSION starting up");
+# }}}
 
 #-- Parse Config -----------------------------------------------------------{{{
 my $CFG = undef;
@@ -412,11 +413,6 @@ if ($opt{prompt}) {
 	exit 0;
 } #}}}
 
-#-- Option: edit -----------------------------------------------------------{{{
-if ($opt{edit}) {
-	exec '/bin/sh -c "$EDITOR '.$TT_FILE.'"'
-} #}}}
-
 #-- Option: kill -----------------------------------------------------------{{{
 if ($opt{kill}) {
 	die "\nDetected --kill, --reset or -x in your comments, but its position was\n".
@@ -437,7 +433,6 @@ if ($opt{kill}) {
 	}
 	exit 0;
 } #}}}
-
 
 #-- Option: summary (or no args) -------------------------------------------{{{
 
@@ -510,6 +505,7 @@ if (@ARGV == 0 or $opt{summary}) {
 	exit 0;
 } #}}}
 
+#-- Process entry ----------------------------------------------------------{{{
 debug("\@argv == ".@ARGV);
 debug(map { "argv[]: $_" } @ARGV);
 
@@ -532,6 +528,6 @@ if (@ARGV >= 3) {
 
 } else {
 	usage(1);
-}
+} # }}}
 
 # vim:ts=2:sts=2:sw=2:noet:ft=perl:fdm=marker

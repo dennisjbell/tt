@@ -402,13 +402,19 @@ die "Invalid start day in ${cfg_filename}: $CFG->{weekstart}\n"
 	if $CFG->{weekstart} and ! day($CFG->{weekstart},'valid');
 # }}}
 
+#-- Option: prompt ---------------------------------------------------------{{{
 if ($opt{prompt}) {
 	my $since;
 	print defined($since = time_stat) ? "${since}m" : "??";
 	exit 0;
-}
+} #}}}
 
-exec '/bin/sh -c "$EDITOR '.$TT_FILE.'"' if $opt{edit};
+#-- Option: edit -----------------------------------------------------------{{{
+if ($opt{edit}) {
+	exec '/bin/sh -c "$EDITOR '.$TT_FILE.'"'
+} #}}}
+
+#-- Option: kill -----------------------------------------------------------{{{
 if ($opt{kill}) {
 	die "\nDetected --kill, --reset or -x in your comments, but its position was\n".
 			"lost due to option parsing. Perhaps you should quote your comment?\n".
@@ -427,8 +433,10 @@ if ($opt{kill}) {
 		utime(undef, undef, $TT_FILE);
 	}
 	exit 0;
-}
+} #}}}
 
+
+#-- Option: summary (or no args) -------------------------------------------{{{
 
 if (@ARGV == 0 or $opt{summary}) {
 	my ($from, $to); # Date range of summary
@@ -497,6 +505,10 @@ if (@ARGV == 0 or $opt{summary}) {
 	defined($since) and print rjust(" updated $since min. ago ---\n", 30, '-');
 
 	exit 0;
+} #}}}
+
+debug("\@argv == ".@ARGV);
+debug(map { "argv[]: $_" } @ARGV);
 
 if (@ARGV >= 3) {
 	my ($project, $time_s, @rest) = @ARGV;
@@ -515,11 +527,8 @@ if (@ARGV >= 3) {
 	track($opt{date}, $project, $time, $comment);
 	exit 0;
 
-debug("\@argv == ".@ARGV);
-debug(map { "argv[]: $_" } @ARGV);
-
 } else {
 	usage(1);
 }
 
-# vim:ts=2:sts=2:sw=2:noet:ft=perl
+# vim:ts=2:sts=2:sw=2:noet:ft=perl:fdm=marker
